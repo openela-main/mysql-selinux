@@ -4,10 +4,10 @@
 %global modulename mysql
 
 Name:           mysql-selinux
-Version:        1.0.5
+Version:        1.0.6
 Release:        1%{?dist}
 
-License:        GPLv3
+License:        GPL-3.0-only
 URL:            https://github.com/devexp-db/mysql-selinux
 Summary:        SELinux policy modules for MySQL and MariaDB packages
 
@@ -57,6 +57,9 @@ fi
 %license COPYING
 
 %changelog
+* Wed Jul 12 2023 Adam Dobes <adobes@redhat.com> - 1.0.6-1
+- Rebase to 1.0.6
+
 * Thu Jun 09 2022 Michal Schorm <mschorm@redhat.com> - 1.0.5-1
 - Rebase to 1.0.5
 
