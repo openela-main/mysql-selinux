@@ -1,10 +1,15 @@
+# General maintainer notes:
+#   Fedora guideliens for packaging of SELinux rules:
+#     https://fedoraproject.org/wiki/SELinux/IndependentPolicy
+#   RHEL instructions regarding Troubleshooting problems related to SELinux:
+#     https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/using_selinux/troubleshooting-problems-related-to-selinux_using-selinux
+
 # defining macros needed by SELinux
 %global selinuxtype targeted
-%global moduletype contrib
 %global modulename mysql
 
 Name:           mysql-selinux
-Version:        1.0.6
+Version:        1.0.10
 Release:        1%{?dist}
 
 License:        GPL-3.0-only
@@ -14,10 +19,13 @@ Summary:        SELinux policy modules for MySQL and MariaDB packages
 Source0:        https://github.com/devexp-db/mysql-selinux/archive/refs/tags/%{version}.tar.gz#/%{name}-%{version}.tar.gz
 
 BuildArch:      noarch
+
 BuildRequires:  make
 BuildRequires:  selinux-policy-devel
-Requires(post): policycoreutils
+
 %{?selinux_requires}
+Requires:       selinux-policy-%{selinuxtype}
+Requires(post): selinux-policy-%{selinuxtype}
 
 %description
 SELinux policy modules for MySQL and MariaDB packages.
@@ -31,32 +39,51 @@ make
 
 %install
 # install policy modules
-install -d %{buildroot}%{_datadir}/selinux/packages
-install -m 0644 %{modulename}.pp.bz2 %{buildroot}%{_datadir}/selinux/packages
+install -d %{buildroot}%{_datadir}/selinux/packages/%{selinuxtype}
+install -m 0644 %{modulename}.pp.bz2 %{buildroot}%{_datadir}/selinux/packages/%{selinuxtype}
 
 
 %pre
 %selinux_relabel_pre -s %{selinuxtype}
 
 %post
-%selinux_modules_install -s %{selinuxtype} %{_datadir}/selinux/packages/%{modulename}.pp.bz2 || :
+%selinux_modules_install -s %{selinuxtype} %{_datadir}/selinux/packages/%{selinuxtype}/%{modulename}.pp.bz2
 
 %postun
 if [ $1 -eq 0 ]; then
-    %selinux_modules_uninstall -s %{selinuxtype} %{modulename} || :
+    %selinux_modules_uninstall -s %{selinuxtype} %{modulename}
 fi
 
 %posttrans
-%selinux_relabel_post -s %{selinuxtype} || :
+%selinux_relabel_post -s %{selinuxtype}
 
 
 %files
 %defattr(-,root,root,0755)
-%attr(0644,root,root) %{_datadir}/selinux/packages/%{modulename}.pp.bz2
+%attr(0644,root,root) %{_datadir}/selinux/packages/%{selinuxtype}/%{modulename}.pp.bz2
 %ghost %verify(not mode md5 size mtime) %{_sharedstatedir}/selinux/%{selinuxtype}/active/modules/200/%{modulename}
 %license COPYING
 
+# Note:
+#   we do not pack the *.if file as seen in the example:
+#     https://fedoraproject.org/wiki/SELinux/IndependentPolicy#The_%prep_and_%install_Section
+#   since we do not have any interface to be shared (and even then it is optional)
+
 %changelog
+* Sat Nov 18 2023 Packit <hello@packit.dev> - 1.0.10-1
+- 2nd attempt to fix rhbz#2186996 rhbz#2221433 rhbz#2245705 (Michal Schorm)
+- Resolves rhbz#2250424
+
+* Fri Nov 17 2023 Packit <hello@packit.dev> - 1.0.9-1
+- Revert "Attempt to fix rhbz#2186996 rhbz#2221433 rhbz#2245705" This reverts commit de84778e555b891fd9ea5f3111c87a4990650d6c. (Michal Schorm)
+- Resolves rhbz#2250360
+
+* Tue Sep 26 2023 Michal Schorm <mschorm@redhat.com> - 1.0.7-2
+- Bump release for rebuild
+
+* Thu Sep 14 2023 Packit <hello@packit.dev> - 1.0.7-1
+- Empty commit to test Fedora PACKIT configuration for packaging automation (Michal Schorm)
+
 * Wed Jul 12 2023 Adam Dobes <adobes@redhat.com> - 1.0.6-1
 - Rebase to 1.0.6
 
